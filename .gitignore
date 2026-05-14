@@ -1,0 +1,7 @@
+Release
+CakeBuild
+HammerTime/bin
+HammerTime/obj
+.sconsign.dblite
+.sconscache.py
+HammerTime/modinfo.json
