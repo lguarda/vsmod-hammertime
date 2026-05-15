@@ -11,70 +11,67 @@ namespace HammerTime {
 
 public class HammerTimeModSystem : ModSystem {
     ICoreClientAPI _capi;
+    BlockPos anvilPos;
+    float sqrt_anvil_dist = 1.6f * 1.6f;
 
-    //public void log(string msg) {
-    //    _capi.Logger.Debug(msg);
-    //    _capi.ShowChatMessage(msg);
-    //}
+    public void log(string msg) {
+        _capi.Logger.Debug(msg);
+        _capi.ShowChatMessage(msg);
+    }
 
-    //private void Scan() {
-    //    var player = _capi.World.Player;
-    //    var bs = player.CurrentBlockSelection;
+    private bool IsLookingAtAnvil(BlockPos pos) {
+        var be = _capi.World.BlockAccessor.GetBlockEntity(pos);
+        return be?.GetType() == typeof(BlockEntityAnvil);
+    }
 
-    //    if (bs == null) {
-    //        return;
-    //    }
+    private bool AnvilDistOk() {
+        var pos = _capi.World.Player.Entity.Pos.AsBlockPos;
+        return pos.DistanceSqTo(anvilPos.X, anvilPos.Y, anvilPos.Z) < sqrt_anvil_dist;
+    }
 
-    //    var be = _capi.World.BlockAccessor.GetBlockEntity(bs.Position);
-    //    log($"looking at: {bs.Position} | BE: {be?.GetType().Name ?? "none"}");
-    //}
-
-    private bool LookAtAnvil() {
+    private bool shouldTriggerMod() {
         var player = _capi.World.Player;
         var bs = player.CurrentBlockSelection;
+
+        if (anvilPos != null) {
+            if (AnvilDistOk()) {
+                return true;
+            }
+            anvilPos = null;
+        }
 
         if (bs == null) {
             return false;
         }
 
-        var be = _capi.World.BlockAccessor.GetBlockEntity(bs.Position);
-        return be?.GetType() == typeof(BlockEntityAnvil);
+        if (!IsLookingAtAnvil(bs.Position)) {
+            return false;
+        }
+
+        anvilPos = bs.Position;
+        return AnvilDistOk();
     }
 
-    private BlockPos FindNearbyHelveHammer(BlockPos anvilPos) {
+    private bool FindNearbyHelveHammers(BlockPos anvilPos, Action<BlockPos> callback) {
+        bool found = false;
         int dist = 3;
         foreach (var facing in BlockFacing.HORIZONTALS) {
             var checkPos = anvilPos.AddCopy(facing.Normali.X * dist, 0, facing.Normali.Z * dist);
-            log($"check for {checkPos}");
-            if (_capi.World.BlockAccessor.GetBlockEntity(checkPos) is BEHelveHammer helve) {
-                log("Helv?");
-                return checkPos;
+            if (_capi.World.BlockAccessor.GetBlockEntity(checkPos) is BEHelveHammer) {
+                callback(checkPos);
+                found = true;
             }
         }
-        return null;
+        return found;
     }
 
     private void OnTick(float dt) {
-        //Scan();
-        // Clear ghost on all helve hammers first
-
-        if (_capi.World.Player.InventoryManager.ActiveTool != EnumTool.Hammer) {
-            // clear map
+        if (_capi.World.Player.InventoryManager.ActiveTool != EnumTool.Hammer ||!shouldTriggerMod()) {
             GhostState.Clear();
             return;
         }
 
-        if (!LookAtAnvil()) {
-            GhostState.Clear();
-            return;
-        }
-
-        BlockSelection bs = _capi.World.Player.CurrentBlockSelection;
-        BlockPos pos = FindNearbyHelveHammer(bs.Position);
-        log($"{pos}");
-        if (pos != null) {
-            GhostState.Set(pos, true);
-        } else {
+        if (!FindNearbyHelveHammers(anvilPos, pos => GhostState.Set(pos, true))) {
             GhostState.Clear();
         }
     }

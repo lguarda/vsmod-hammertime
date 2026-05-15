@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, "vscons-build-utils/site_scons")
 
-from build_utils import git_version, dotnet_run, vs_run, roslynator, get_scons_vs_option, setup_modinfo, setup_cake_build
+from build_utils import git_version, dotnet_run, vs_run, get_scons_vs_option, setup_modinfo, setup_cake_build
 
 vars = Variables('.sconscache.py')
 get_scons_vs_option(vars)
@@ -16,7 +16,7 @@ env["GIT_VERSION"] = git_version()
 print(git_version())
 
 
-hammertime_mod_info = setup_modinfo(env, "hammertime", False, True, "hammertime", "Hammer time", "Make helv hammer transparent when working on item with hammer")
+hammertime_mod_info = setup_modinfo(env, "hammertime", False, True, "hammertime", "Hammer time", "Make helve hammer transparent when working on item with hammer")
 hammertime_cake = setup_cake_build(env, "CakeBuild", "hammertime", "Release")
 hammertime_sources = Glob("hammertime/*.cs") + Glob("hammertime/Patches/*.cs")
 
